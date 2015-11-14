@@ -358,8 +358,17 @@ static int dinput_mouse_hook( LPDIRECTINPUTDEVICE8A iface, WPARAM wparam, LPARAM
 
             if (pt.x || pt.y)
             {
-                if ((This->warp_override == WARP_FORCE_ON) ||
-                    (This->warp_override != WARP_DISABLE && (This->base.dwCoopLevel & DISCL_EXCLUSIVE)))
+                RECT rect;
+                BOOL edge = FALSE;
+                if (GetClientRect(This->base.win, &rect))
+                {
+                    MapWindowPoints( This->base.win, 0, (POINT *)&rect, 2 );
+                    edge = hook->pt.x < 2 || hook->pt.y < 2 || hook->pt.x > ((rect.left + rect.right) - 2)
+                        || hook->pt.y > ((rect.top + rect.bottom) - 2);
+                }
+                if ((This->warp_override == WARP_FORCE_ON)
+                    || (edge && This->m_state.rgbButtons[1] == 0x80)
+                    || (This->warp_override != WARP_DISABLE && (This->base.dwCoopLevel & DISCL_EXCLUSIVE)))
                     This->need_warp = TRUE;
             }
             break;
@@ -422,9 +431,7 @@ static void warp_check( SysMouseImpl* This, BOOL force )
     DWORD now = GetCurrentTime();
     const DWORD interval = This->clipped ? 500 : 10;
 
-    if (force
-        || (This->need_warp && (now - This->last_warped > interval))
-        || This->m_state.rgbButtons[1] == 0x80)
+    if (force || (This->need_warp && (now - This->last_warped > interval)))
     {
         RECT rect, new_rect;
         POINT mapped_center;
