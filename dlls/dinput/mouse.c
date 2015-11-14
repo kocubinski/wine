@@ -114,11 +114,11 @@ static void _dump_mouse_state(const DIMOUSESTATE2 *m_state)
 static void fill_mouse_dideviceinstanceA(LPDIDEVICEINSTANCEA lpddi, DWORD version) {
     DWORD dwSize;
     DIDEVICEINSTANCEA ddi;
-    
+
     dwSize = lpddi->dwSize;
 
     TRACE("%d %p\n", dwSize, lpddi);
-    
+
     memset(lpddi, 0, dwSize);
     memset(&ddi, 0, sizeof(ddi));
 
@@ -138,11 +138,11 @@ static void fill_mouse_dideviceinstanceA(LPDIDEVICEINSTANCEA lpddi, DWORD versio
 static void fill_mouse_dideviceinstanceW(LPDIDEVICEINSTANCEW lpddi, DWORD version) {
     DWORD dwSize;
     DIDEVICEINSTANCEW ddi;
-    
+
     dwSize = lpddi->dwSize;
 
     TRACE("%d %p\n", dwSize, lpddi);
-    
+
     memset(lpddi, 0, dwSize);
     memset(&ddi, 0, sizeof(ddi));
 
@@ -168,12 +168,12 @@ static HRESULT mousedev_enum_deviceA(DWORD dwDevType, DWORD dwFlags, LPDIDEVICEI
 	((dwDevType == DIDEVTYPE_MOUSE) && (version < 0x0800)) ||
 	(((dwDevType == DI8DEVCLASS_POINTER) || (dwDevType == DI8DEVTYPE_MOUSE)) && (version >= 0x0800))) {
 	TRACE("Enumerating the mouse device\n");
-	
+
 	fill_mouse_dideviceinstanceA(lpddi, version);
-	
+
 	return S_OK;
     }
-    
+
     return S_FALSE;
 }
 
@@ -186,12 +186,12 @@ static HRESULT mousedev_enum_deviceW(DWORD dwDevType, DWORD dwFlags, LPDIDEVICEI
 	((dwDevType == DIDEVTYPE_MOUSE) && (version < 0x0800)) ||
 	(((dwDevType == DI8DEVCLASS_POINTER) || (dwDevType == DI8DEVTYPE_MOUSE)) && (version >= 0x0800))) {
 	TRACE("Enumerating the mouse device\n");
-	
+
 	fill_mouse_dideviceinstanceW(lpddi, version);
-	
+
 	return S_OK;
     }
-    
+
     return S_FALSE;
 }
 
@@ -422,7 +422,9 @@ static void warp_check( SysMouseImpl* This, BOOL force )
     DWORD now = GetCurrentTime();
     const DWORD interval = This->clipped ? 500 : 10;
 
-    if (force || (This->need_warp && (now - This->last_warped > interval)))
+    if (force
+        || (This->need_warp && (now - This->last_warped > interval))
+        || This->m_state.rgbButtons[1] == 0x80)
     {
         RECT rect, new_rect;
         POINT mapped_center;
@@ -616,16 +618,16 @@ static HRESULT WINAPI SysMouseWImpl_GetProperty(LPDIRECTINPUTDEVICE8W iface, REF
 	switch (LOWORD(rguid)) {
 	    case (DWORD_PTR) DIPROP_GRANULARITY: {
 		LPDIPROPDWORD pr = (LPDIPROPDWORD) pdiph;
-		
+
 		/* We'll just assume that the app asks about the Z axis */
 		pr->dwData = WHEEL_DELTA;
-		
+
 		break;
 	    }
-	      
+
 	    case (DWORD_PTR) DIPROP_RANGE: {
 		LPDIPROPRANGE pr = (LPDIPROPRANGE) pdiph;
-		
+
 		if ((pdiph->dwHow == DIPH_BYID) &&
 		    ((pdiph->dwObj == (DIDFT_MAKEINSTANCE(WINE_MOUSE_X_AXIS_INSTANCE) | DIDFT_RELAXIS)) ||
 		     (pdiph->dwObj == (DIDFT_MAKEINSTANCE(WINE_MOUSE_Y_AXIS_INSTANCE) | DIDFT_RELAXIS)))) {
@@ -635,7 +637,7 @@ static HRESULT WINAPI SysMouseWImpl_GetProperty(LPDIRECTINPUTDEVICE8W iface, REF
 		    pr->lMin = DIPROPRANGE_NOMIN;
 		    pr->lMax = DIPROPRANGE_NOMAX;
 		}
-		
+
 		break;
 	    }
 
@@ -757,7 +759,7 @@ static HRESULT WINAPI SysMouseAImpl_GetDeviceInfo(
     }
 
     fill_mouse_dideviceinstanceA(pdidi, This->base.dinput->dwVersion);
-    
+
     return DI_OK;
 }
 
@@ -772,7 +774,7 @@ static HRESULT WINAPI SysMouseWImpl_GetDeviceInfo(LPDIRECTINPUTDEVICE8W iface, L
     }
 
     fill_mouse_dideviceinstanceW(pdidi, This->base.dinput->dwVersion);
-    
+
     return DI_OK;
 }
 
